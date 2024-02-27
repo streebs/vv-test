@@ -47,13 +47,15 @@ class VV:
         if get_folder_response["meta"]["status"] == 200:
             folder_id = get_folder_response["data"]["id"]
         else:
+            print("Error: failed to get the folder id. Reason:")
             print(get_folder_response["meta"]["statusMsg"])
             return
-        # create a new empty document in the folder using the document id from the previous step
+        # create a new empty document in the folder using the folder id from the previous step
         new_doc_response = self.document_service.new_document(folder_id, 1, uploaded_file_name, "", "1", uploaded_file_name)
         if new_doc_response["meta"]["status"] == 200:
             doc_id = new_doc_response["data"]["id"]
         else:
+            print("Error: failed to get the document id. Reason:")
             print(new_doc_response["meta"]["statusMsg"])
             return
         # upload the file to the document newly created in step 2 (use the document id from step 2)

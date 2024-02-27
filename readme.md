@@ -15,6 +15,8 @@ Files used for testing:
 `test2.txt`
 `test_folder/test3.txt`
 
+This software utilizes the Visual Vault Pyhton API. Documentation for the API can be found here: [Visual Vault API](https://github.com/VisualVault/vvrest)
+
 ### How to Run
 
 If you are using a python virtual environment, `requirements.txt` contains the dependencies need.
