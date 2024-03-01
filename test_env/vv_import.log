@@ -1,0 +1,29 @@
+2024-03-01 13:33:00,465 - INFO -There are 1 files to import
+2024-03-01 13:34:56,702 - ERROR -API did not return name using UVID from 10855240_GRE.pdf
+2024-03-01 13:34:58,708 - INFO -10855240_GRE.pdf is being added to errorfiles
+2024-03-01 13:35:04,421 - INFO -There were 1 errors
+2024-03-01 13:35:08,195 - WARNING -Moving 10855240_GRE.pdf  to errordir
+2024-03-01 13:54:22,857 - INFO -There are 1 files to import
+2024-03-01 14:00:29,622 - INFO -There are 1 files to import
+2024-03-01 14:01:09,277 - INFO -There are 1 files to import
+2024-03-01 14:01:34,304 - INFO -1 10855240_GRE.pdf
+2024-03-01 14:02:49,057 - INFO -There are 1 files to import
+2024-03-01 14:02:49,057 - ERROR -Files have been found in tmp!!!
+2024-03-01 14:02:49,057 - ERROR -Files have been moved out of tmpdir to importdir
+2024-03-01 14:02:49,058 - ERROR -Skipping the rest of the run
+2024-03-01 14:03:24,446 - INFO -There are 1 files to import
+2024-03-01 14:03:35,159 - INFO -1 10855240_GRE.pdf
+2024-03-01 14:03:41,318 - INFO -Calling Visual Vault Import for 1 files
+2024-03-01 14:03:52,319 - INFO -10855240_GRE.pdf uploaded to Visual Vault
+2024-03-01 14:03:53,316 - WARNING -import.imp was already removed prior to cleanup
+2024-03-01 14:03:53,316 - WARNING -BMIImport.log was already removed prior to cleanup
+2024-03-01 14:03:53,316 - ERROR -Failed to move 10855240_GRE.pdf from tmp directory
+2024-03-01 14:07:39,141 - INFO -There are 1 files to import
+2024-03-01 14:07:55,831 - ERROR -Files have been found in tmp!!!
+2024-03-01 14:08:01,397 - ERROR -Files have been moved out of tmpdir to importdir
+2024-03-01 14:08:02,024 - ERROR -Skipping the rest of the run
+2024-03-01 14:08:26,066 - INFO -There are 1 files to import
+2024-03-01 14:08:36,456 - INFO -1 10855240_GRE.pdf
+2024-03-01 14:08:42,224 - INFO -Calling Visual Vault Import for 1 files
+2024-03-01 14:08:50,902 - INFO -10855240_GRE.pdf uploaded to Visual Vault
+2024-03-01 14:08:52,963 - WARNING -BMIImport.log was already removed prior to cleanup
