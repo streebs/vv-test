@@ -5,9 +5,9 @@ from string import Template
 def main():
     # Setup BMI Variables
     # source directory
-    ppath = "\\\\fs1.ad.uvu.edu\\groups\\admissions_bmi_upload\\ImportTranscripts"
-    envfile = "\\\\bmi-db\\ra\\records\\records.ENV"
-    regexstring = None
+    source = "test_env"
+    destination = "Student Records/DevTest"
+    regexstring = None # this is an optional regex string
     filetype = ".pdf"
     stringconcat = Template("$last,$first~~$UVID~$doc")
     delimiter = "_"
@@ -28,14 +28,14 @@ def main():
                "SAT": "SAT"}
 
     #  setup as member of class
-    i = VV(ppath)
+    i = VV(source)
     i.build_log(20000000, 1, "info")
     i.bmifiles = getfiles(i.importdir, filetype)
     if i.bmifiles:
         i.log.info("There are " + str(len(i.bmifiles)) + " files to import")
         i.log.debug("bmifiles: " + str(i.bmifiles))
         if not i.buildtempdir():
-            i.temprecover(filetype)
+            i.temprecover(filetype) # this will exit the program
         for file in i.bmifiles:
             if regexstring:
                 if not i.regex(regexstring, file):
@@ -50,17 +50,11 @@ def main():
                 continue
             if lname:
                 try:
-                    newstring = stringconcat.substitute(last=lname,
-                                                        first=fname,
-                                                        UVID=string[0],
-                                                        doc=doctype[string[1]])
+                    newstring = {"last": lname, "first": fname, "UVID": string[0], "doc": doctype[string[1]]}
                     if i.movetotmp(file):
-                        i.writetoimp(file, newstring)
+                        i.writetoimp(file, str(newstring))
                 except (KeyError,IndexError):
-                    i.log.warning("Incorrect Doctype Found")
-                    i.addtoerror(file)
-                except IndexError:
-                    i.log.error("Index out of range")
+                    i.log.warning("Incorrect Doctype Found or Index out of range")
                     i.addtoerror(file)
             else:
                 i.log.error("API did not return name using UVID from " + file)
@@ -70,8 +64,8 @@ def main():
         for file in i.errorfiles:
             i.movetoerror(file)
     if i.bmifiles:
-        i.log.debug("BMI imp file has been created")
-        if not i.bmiimport(envfile):
+        i.log.debug("Visual Vault imp file has been created")
+        if not i.visualvaultimport(destination):
             i.temprecover(filetype)
         i.cleanup()
 

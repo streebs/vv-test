@@ -94,7 +94,7 @@ class VV:
         Keyword arguments:
         file -- full path to file
         """
-        if not movefile(self.importdir + "\\" + file, self.tempdir + "\\" + file):
+        if not movefile(self.importdir + "/" + file, self.tempdir + "/" + file):
             self.log.error("File In Use! " + file)
             self.movetoerror(file)
             return False
@@ -117,26 +117,26 @@ class VV:
         self.log.debug(file + " is being removed from bmifiles")
         self.bmifiles.remove(file)
         self.log.warning("Moving " + file + "  to errordir")
-        if not movefile(self.importdir + "\\" + file, self.errordir + "\\" + file):
+        if not movefile(self.importdir + "/" + file, self.errordir + "/" + file):
             self.log.error("Can't move " + file + " to errordir")
     #
-    def writetoimp(self, file, newstring):
+    def writetoimp(self, file, metadata):
         """Writes the import file used by bmiimport3.exe
         Keyword arguments:
         file -- full path to file
         newstring -- the constructed string for the import file
         """
-        impfile = open(self.tempdir + "\\" + "import.imp", 'a')
-        importstring = ("~\"" + self.tempdir + "\\" + file + "\";~" + newstring)
+        impfile = open(self.tempdir + "/" + "import.imp", 'a')
+        importstring = (self.tempdir + "/ : " + file + " : " + metadata)
         try:
             impfile.write(importstring + "\r\n")
         except:
             self.log.error("Couldn't write " + file + " to import.imp")
             self.log.error("Moving" + file + " back to import dir")
-            if not movefile(self.tempdir + "\\" + file, self.postdir + "\\" + file):
+            if not movefile(self.tempdir + "/" + file, self.postdir + "/" + file):
                 message = "Can't move " + file + " back to importdir"
                 self.log.critical(message)
-                emailadmin(message + ": " + self.importdir)
+                # emailadmin(message + ": " + self.importdir)
                 sys.exit(1)
 
         self.log.debug("impfile " + importstring)
@@ -150,43 +150,48 @@ class VV:
         """
         files = getfiles(self.tempdir, filetype)
         for file in files:
-            if not movefile(self.tempdir + "\\" + file, self.importdir + "\\" + file):
+            if not movefile(self.tempdir + "/" + file, self.importdir + "/" + file):
                 message = file + " cannot be moved in tempdir: " + self.tempdir
                 self.log.critical(message)
-                emailadmin(message)
+                # emailadmin(message)
                 sys.exit(1)
-                return False
         self.log.error("Files have been moved out of tmpdir to importdir")
         self.log.error("Skipping the rest of the run")
         shutil.rmtree(self.tempdir)
         sys.exit(1)
 
-    def upload_document(self, dest_folder_path, uploaded_file_name, uploaded_file_path, file_metadata = {}):
-        folder_id = ""
-        doc_id = ""
+    def visualvaultimport(self, destination):
+        """moves files from source to visual vault. Utilizes the .imp file in the tempdir to get each file and metadata.
+        Works very similarly to the bmiimport function
+        Keyword Arguments:
+        source -- full path to source directory
+        """
+        badFiles = []
+        flag = True
 
-        # get the folder id of the folder you want to upload the document to
-        get_folder_response = self.folder_Service.get_folder_search(f"/{dest_folder_path}")
-        if get_folder_response["meta"]["status"] == 200:
-            folder_id = get_folder_response["data"]["id"]
-        else:
-            print("Error: failed to get the folder id. Reason:")
-            print(get_folder_response["meta"]["statusMsg"])
-            return
-        # create a new empty document in the folder using the folder id from the previous step
-        new_doc_response = self.document_service.new_document(folder_id, 1, uploaded_file_name, "", "1", uploaded_file_name)
-        if new_doc_response["meta"]["status"] == 200:
-            doc_id = new_doc_response["data"]["id"]
-        else:
-            print("Error: failed to get the document id. Reason:")
-            print(new_doc_response["meta"]["statusMsg"])
-            return
-        # upload the file to the document newly created in step 2 (use the document id from step 2)
-        file_upload_response = self.file_service.file_upload(doc_id, uploaded_file_name, "2", "", "0", str(file_metadata), uploaded_file_name, uploaded_file_path)
-        if file_upload_response["meta"]["status"] == 200:
-            print(f"file {uploaded_file_name} uploaded successfully")
-        else:
-            print(file_upload_response["meta"]["statusMsg"])
+        self.log.info("Calling Visual Vault Import for " + str(len(self.bmifiles)) + " files")
+        files = open(self.tempdir + "/" + "import.imp", "r")
+        files = files.read()
+        files = files.split("\r\n")
+        for file in files:
+            if file:
+                file = file.split(" : ")
+                if self.upload_document(destination, file[1], file[0]+file[1], file[2]):
+                    self.log.info(file[1] + " uploaded to Visual Vault")
+                else:
+                    self.log.error(file[1] + " failed to upload to Visual Vault")
+                    badFiles.append(file[0]+file[1])
+
+        if badFiles:
+            for f in badFiles:
+                self.log.error("upload_document failed on " + f)
+                self.log.error("Moving " + f + " to " + self.importdir)
+                if not shutil.move(f, self.importdir):
+                    self.log.critical("Cannot move bad file!!! Exiting...")
+                    flag = False
+
+        return flag
+                    
 
     def bmiimport(self, envfile):
         """Actual subprocess call to BMIImport3.exe
@@ -233,15 +238,45 @@ class VV:
             self.log.error("BMIImport Crashed!!!!")
             flag = False
         return flag
+    
+    def upload_document(self, dest_folder_path, uploaded_file_name, uploaded_file_path, file_metadata = {}):
+        folder_id = ""
+        doc_id = ""
+
+        # get the folder id of the folder you want to upload the document to
+        get_folder_response = self.folder_Service.get_folder_search(f"/{dest_folder_path}")
+        if get_folder_response["meta"]["status"] == 200:
+            folder_id = get_folder_response["data"]["id"]
+        else:
+            print("Error: failed to get the folder id. Reason:")
+            print(get_folder_response["meta"]["statusMsg"])
+            return False
+        # create a new empty document in the folder using the folder id from the previous step
+        new_doc_response = self.document_service.new_document(folder_id, 1, uploaded_file_name, "", "1", uploaded_file_name)
+        if new_doc_response["meta"]["status"] == 200:
+            doc_id = new_doc_response["data"]["id"]
+        else:
+            print("Error: failed to get the document id. Reason:")
+            print(new_doc_response["meta"]["statusMsg"])
+            return False
+        # upload the file to the document newly created in step 2 (use the document id from step 2)
+        file_upload_response = self.file_service.file_upload(doc_id, uploaded_file_name, "2", "", "0", str(file_metadata), uploaded_file_name, uploaded_file_path)
+        if file_upload_response["meta"]["status"] == 200:
+            print(f"file {uploaded_file_name} uploaded successfully")
+            return True
+        else:
+            print("failed to upload file. Reason:")
+            print(file_upload_response["meta"]["statusMsg"])
+            return False
 
     def cleanup(self):
         """Cleans up the environment for next run"""
         try:
-            os.remove(self.tempdir + "\\" + "import.imp")
+            os.remove(self.tempdir + "/" + "import.imp")
         except FileNotFoundError:
             self.log.warning("import.imp was already removed prior to cleanup")
         try:
-            os.remove(self.tempdir + "\\" + "BMIImport.Log")
+            os.remove(self.tempdir + "/" + "BMIImport.Log")
         except FileNotFoundError:
             self.log.warning("BMIImport.log was already removed prior to cleanup")
         contents = self.bmifiles
@@ -251,7 +286,7 @@ class VV:
                     os.remove(os.path.join(self.postdir, content))
                 except OSError as os_error:
                     self.log.error("Error removing file " + content + " see following for details: " + os_error)
-            if not movefile(self.tempdir + "\\" + content, self.postdir + "\\" + content):
+            if not movefile(self.tempdir + "/" + content, self.postdir + "/" + content):
                 self.log.error("Failed to move " + content + " from tmp directory")
                 return False
         try:
@@ -263,6 +298,7 @@ class VV:
     def getname(self, uvid):
         """Call db to return firstname and lastname"""
         self.log.debug("UVID = " + uvid)
+        return ("Strebe", "Sheldon")
         try:
             domain = 'https://ais-linux6.uvu.edu/idm/imaging/getEmployeeName.php?uvid=' + uvid
             r = requests.get(domain)
