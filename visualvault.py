@@ -209,25 +209,21 @@ class VV:
         if get_folder_response["meta"]["status"] == 200:
             folder_id = get_folder_response["data"]["id"]
         else:
-            print("Error: failed to get the folder id. Reason:")
-            print(get_folder_response["meta"]["statusMsg"])
+            self.log.error(f"Failed to get the folder id. Reason: {get_folder_response['meta']['statusMsg']}")
             return False
         # create a new empty document in the folder using the folder id from the previous step
         new_doc_response = self.document_service.new_document(folder_id, 1, uploaded_file_name, "", "1", uploaded_file_name)
         if new_doc_response["meta"]["status"] == 200:
             doc_id = new_doc_response["data"]["id"]
         else:
-            print("Error: failed to get the document id. Reason:")
-            print(new_doc_response["meta"]["statusMsg"])
+            self.log.error(f"Failed to get document id. Reason: {new_doc_response['meta']['statusMsg']}")
             return False
         # upload the file to the document newly created in step 2 (use the document id from step 2)
         file_upload_response = self.file_service.file_upload(doc_id, uploaded_file_name, "2", "", "0", str(file_metadata), uploaded_file_name, uploaded_file_path)
         if file_upload_response["meta"]["status"] == 200:
-            print(f"file {uploaded_file_name} uploaded successfully")
             return True
         else:
-            print("failed to upload file. Reason:")
-            print(file_upload_response["meta"]["statusMsg"])
+            self.log.error(f"Failed to upload file. Reason: {file_upload_response['meta']['statusMsg']}")
             return False
 
     def cleanup(self):
