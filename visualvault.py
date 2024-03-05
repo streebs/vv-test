@@ -194,6 +194,13 @@ class VV:
                     
     
     def upload_document(self, dest_folder_path, uploaded_file_name, uploaded_file_path, file_metadata = {}):
+        """Uploads a document to visual vault via the API
+        Keyword Arguments:
+        dest_folder_path -- full path to destination directory in visual vault
+        uploaded_file_name -- name of the file to be uploaded
+        uploaded_file_path -- full path to file to be uploaded
+        file_metadata -- dictionary of metadata to be uploaded with the file
+        """
         folder_id = ""
         doc_id = ""
 
