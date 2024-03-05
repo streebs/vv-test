@@ -1,15 +1,13 @@
 from visualvault import VV, getfiles
-from string import Template
 
 
 def main():
-    # Setup BMI Variables
+    # Setup visual vault Variables
     # source directory
     source = "test_env"
     destination = "Student Records/DevTest"
     regexstring = None # this is an optional regex string
     filetype = ".pdf"
-    stringconcat = Template("$last,$first~~$UVID~$doc")
     delimiter = "_"
     doctype = {"G": "GRAD APP",
                "N": "NON GRAD APP",
@@ -30,13 +28,13 @@ def main():
     #  setup as member of class
     i = VV(source)
     i.build_log(20000000, 1, "info")
-    i.bmifiles = getfiles(i.importdir, filetype)
-    if i.bmifiles:
-        i.log.info("There are " + str(len(i.bmifiles)) + " files to import")
-        i.log.debug("bmifiles: " + str(i.bmifiles))
+    i.vvfiles = getfiles(i.importdir, filetype)
+    if i.vvfiles:
+        i.log.info("There are " + str(len(i.vvfiles)) + " files to import")
+        i.log.debug("vvfiles: " + str(i.vvfiles))
         if not i.buildtempdir():
             i.temprecover(filetype) # this will exit the program
-        for file in i.bmifiles:
+        for file in i.vvfiles:
             if regexstring:
                 if not i.regex(regexstring, file):
                     continue
@@ -50,7 +48,7 @@ def main():
                 continue
             if lname:
                 try:
-                    newstring = {"last": lname, "first": fname, "UVID": string[0], "doc": doctype[string[1]]}
+                    newstring = {"Last Name": lname, "First Name": fname, "UVID": string[0], "Document Type": doctype[string[1]]}
                     if i.movetotmp(file):
                         i.writetoimp(file, str(newstring))
                 except (KeyError,IndexError):
@@ -63,7 +61,7 @@ def main():
         i.log.info("There were " + str(i.errorcount) + " errors")
         for file in i.errorfiles:
             i.movetoerror(file)
-    if i.bmifiles:
+    if i.vvfiles:
         i.log.debug("Visual Vault imp file has been created")
         if not i.visualvaultimport(destination):
             i.temprecover(filetype)

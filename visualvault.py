@@ -9,7 +9,7 @@ import smtplib
 import string
 from email.mime.text import MIMEText
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, sep
 
 from vvrest.vault import Vault
 from vvrest.services.document_service import DocumentService
@@ -27,12 +27,12 @@ class VV:
     def __init__(self, ppath):
         """Sets up as member of import class"""
         self.errorfiles = []
-        self.bmifiles = []
-        self.importdir = ppath + "/IMPORT"
-        self.tempdir = ppath + "/tmp"
-        self.postdir = ppath + "/IMPORTED"
-        self.errordir = ppath + "/ERROR"
-        self.logfile = ppath + "/vv_import.log"
+        self.vvfiles = []
+        self.importdir = ppath + sep + "IMPORT"
+        self.tempdir = ppath + sep +  "tmp"
+        self.postdir = ppath + sep + "IMPORTED"
+        self.errordir = ppath + sep + "ERROR"
+        self.logfile = ppath + sep + "vv_import.log"
         self.count = 0
         self.errorcount = 0
 
@@ -54,7 +54,7 @@ class VV:
 
     #
     def regex(self, regexstring, file):
-        """Tests each file in bmifiles to ensure that they are written correctly
+        """Tests each file in vvfiles to ensure that they are written correctly
         Keyword arguments:
         regexstring -- passes the actual regex value to search for
         """
@@ -94,7 +94,7 @@ class VV:
         Keyword arguments:
         file -- full path to file
         """
-        if not movefile(self.importdir + "/" + file, self.tempdir + "/" + file):
+        if not movefile(self.importdir + sep + file, self.tempdir + sep + file):
             self.log.error("File In Use! " + file)
             self.movetoerror(file)
             return False
@@ -114,26 +114,26 @@ class VV:
         Keyword arguments:
         file -- full path to file
         """
-        self.log.debug(file + " is being removed from bmifiles")
-        self.bmifiles.remove(file)
+        self.log.debug(file + " is being removed from vvfiles")
+        self.vvfiles.remove(file)
         self.log.warning("Moving " + file + "  to errordir")
-        if not movefile(self.importdir + "/" + file, self.errordir + "/" + file):
+        if not movefile(self.importdir + sep + file, self.errordir + sep + file):
             self.log.error("Can't move " + file + " to errordir")
     #
     def writetoimp(self, file, metadata):
-        """Writes the import file used by bmiimport3.exe
+        """Writes the import file used by visualvaultimport
         Keyword arguments:
         file -- full path to file
-        newstring -- the constructed string for the import file
+        metadata -- the dictionary that contains the index fields for the import file
         """
-        impfile = open(self.tempdir + "/" + "import.imp", 'a')
+        impfile = open(self.tempdir + sep + "import.imp", 'a')
         importstring = (self.tempdir + "/ : " + file + " : " + metadata)
         try:
             impfile.write(importstring + "\r\n")
         except:
             self.log.error("Couldn't write " + file + " to import.imp")
             self.log.error("Moving" + file + " back to import dir")
-            if not movefile(self.tempdir + "/" + file, self.postdir + "/" + file):
+            if not movefile(self.tempdir + sep + file, self.postdir + sep + file):
                 message = "Can't move " + file + " back to importdir"
                 self.log.critical(message)
                 # emailadmin(message + ": " + self.importdir)
@@ -150,7 +150,7 @@ class VV:
         """
         files = getfiles(self.tempdir, filetype)
         for file in files:
-            if not movefile(self.tempdir + "/" + file, self.importdir + "/" + file):
+            if not movefile(self.tempdir + sep + file, self.importdir + sep + file):
                 message = file + " cannot be moved in tempdir: " + self.tempdir
                 self.log.critical(message)
                 # emailadmin(message)
@@ -162,18 +162,18 @@ class VV:
 
     def visualvaultimport(self, destination):
         """moves files from source to visual vault. Utilizes the .imp file in the tempdir to get each file and metadata.
-        Works very similarly to the bmiimport function
         Keyword Arguments:
-        source -- full path to source directory
+        destination -- full path to destination directory in visual vault
         """
         badFiles = []
         flag = True
 
-        self.log.info("Calling Visual Vault Import for " + str(len(self.bmifiles)) + " files")
-        files = open(self.tempdir + "/" + "import.imp", "r")
-        files = files.read()
-        files = files.split("\r\n")
+        self.log.info("Calling Visual Vault Import for " + str(len(self.vvfiles)) + " files")
+        files = open(self.tempdir + sep + "import.imp", "r")
+        files = files.readlines()
+        # files = files.split("\r\n")
         for file in files:
+            file = file.strip()
             if file:
                 file = file.split(" : ")
                 if self.upload_document(destination, file[1], file[0]+file[1], file[2]):
@@ -192,52 +192,6 @@ class VV:
 
         return flag
                     
-
-    def bmiimport(self, envfile):
-        """Actual subprocess call to BMIImport3.exe
-        Keyword Arguments:
-        envfile -- path to bmi envfile for import
-        """
-        # the upload document function needs the follwoing arguments:
-        # vv_folder_path - the path to the folder in visualvault
-        # uploaded_file_name - the name of the file to be uploaded
-        # uploaded_file_path - the full path to the file to be uploaded (as found on the local machine)
-        self.log.info("Calling BMI Import for " + str(len(self.bmifiles)) + " files")
-
-        importarg = "-e" + envfile + " -t" + self.tempdir + "\\import.imp" + " -lappend" + " -h" # update
-        self.log.debug("BMIImport3.exe " + importarg + " -lappend" + " -h") # update
-        process = subprocess.Popen("BMIImport3 " + importarg, shell=True) # should be able to replace this with the upload_document function/code
-        process.wait()
-        
-        if process:
-            self.log.info("Import Complete")
-            bmilog = self.tempdir + "\\BMIImport.Log"
-            try:
-                file = open(bmilog, "r")
-                self.log.debug("Contents of BMIImport.Log:")
-                regex = re.compile("Cannot|Unable")
-                regex_filename = re.compile("(\\\\.+\..{3})")
-                badfile = []
-                flag = True
-                for line in file:
-                    self.log.info(line)
-                    if regex.search(line):
-                        string = regex_filename.search(line)
-                        string = string.group(1) if string else None
-                        self.log.debug("bad file " + string)
-                        badfile = badfile + [string]
-                for f in badfile:
-                    self.log.error("BMIImport failed on " + f)
-                    self.log.error("Moving " + f + " to " + self.importdir)
-                    if not shutil.move(f, self.importdir):
-                        self.log.critical("Cannot move bad file!!! Exiting...")
-                        flag = False
-            except FileNotFoundError:
-                self.log.warning("BMIImport.Log was not found. Potential Data Loss!")
-        else:
-            self.log.error("BMIImport Crashed!!!!")
-            flag = False
-        return flag
     
     def upload_document(self, dest_folder_path, uploaded_file_name, uploaded_file_path, file_metadata = {}):
         folder_id = ""
@@ -272,21 +226,17 @@ class VV:
     def cleanup(self):
         """Cleans up the environment for next run"""
         try:
-            os.remove(self.tempdir + "/" + "import.imp")
+            os.remove(self.tempdir + sep + "import.imp")
         except FileNotFoundError:
             self.log.warning("import.imp was already removed prior to cleanup")
-        try:
-            os.remove(self.tempdir + "/" + "BMIImport.Log")
-        except FileNotFoundError:
-            self.log.warning("BMIImport.log was already removed prior to cleanup")
-        contents = self.bmifiles
+        contents = self.vvfiles
         for content in contents:
             if os.path.exists(os.path.join(self.postdir, content)):
                 try:
                     os.remove(os.path.join(self.postdir, content))
                 except OSError as os_error:
                     self.log.error("Error removing file " + content + " see following for details: " + os_error)
-            if not movefile(self.tempdir + "/" + content, self.postdir + "/" + content):
+            if not movefile(self.tempdir + sep + content, self.postdir + sep + content):
                 self.log.error("Failed to move " + content + " from tmp directory")
                 return False
         try:
@@ -353,14 +303,7 @@ def changefiletype(path, ctype, etype):
         os.rename(os.path.join(path, file), os.path.join(path, string + etype))
 
 
-def emailadmin(message):
-    msg = MIMEText(message)
-    msg['Subject'] = "Critical Error Encountered"
-    msg['From'] = "root@bmi-adm"
-    msg['To'] = 'natew@uvu.edu'
-    s = smtplib.SMTP('smtpmail.ad.uvu.edu')
-    s.sendmail('root@bmi-adm', 'natew@uvu.edu', msg.as_string())
-    s.quit()
+
 
 
 def containsAny(str, set):
