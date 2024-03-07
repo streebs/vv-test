@@ -61,6 +61,7 @@ def main():
                                                         first=fname,
                                                         UVID=string[0],
                                                         date=today)
+                    newstring = {"Last Name": lname, "First Name": fname, "UVID": string[0], "date": today}
                     if i.movetotmp(file):
                         # create a dictionary here for the metadata to be passed to visual vault via the api. 
                         i.writetoimp(file, newstring) # I dont think this will be necessary for visual vault. will write metadata another way
