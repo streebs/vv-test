@@ -251,9 +251,8 @@ class VV:
     def getname(self, uvid):
         """Call db to return firstname and lastname"""
         self.log.debug("UVID = " + uvid)
-        return ("Strebe", "Sheldon")
         try:
-            domain = 'https://ais-linux6.uvu.edu/idm/imaging/getEmployeeName.php?uvid=' + uvid
+            domain = 'https://qa.dws.uvu.edu/idname-api/idname.php?funct=namerev&uvid=' + uvid
             r = requests.get(domain)
             name = r.text
             if name:
